@@ -1,0 +1,812 @@
+{
+  "name": "RAG",
+  "nodes": [
+    {
+      "parameters": {
+        "tableName": "n8n_chat_historial"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        480,
+        260
+      ],
+      "id": "df58e8e6-0c16-44a0-8a36-e5f2dc6a7d7e",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "49Sqj4GXcvW2jnD2",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## RAG\nPrincipal window",
+        "height": 720,
+        "width": 960
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        40,
+        0
+      ],
+      "id": "82940d7a-d126-454c-9fb2-fca21f8e6635",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cac3433e-e935-4ba7-ba4f-d80181561691",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "e641efc3-ba90-4994-ad47-fab33fddcd08",
+              "name": "type",
+              "value": "={{ $json.mimeType }}",
+              "type": "string"
+            },
+            {
+              "id": "b0a82b77-564a-47d2-a85e-eabd58f52973",
+              "name": "source",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1480,
+        300
+      ],
+      "id": "907a48b5-a3a1-4c7d-8acb-18588fc16d4b",
+      "name": "Variables"
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        3080,
+        240
+      ],
+      "id": "cdc1a279-a98e-42cc-98dd-dd3a5e517e5d",
+      "name": "Embeddings Ollama1",
+      "credentials": {
+        "ollamaApi": {
+          "id": "mJdcpg3SlEXe3cS1",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $json.data || $json.text }}",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "file_id",
+                "value": "={{ $('Variables').item.json.id }}"
+              },
+              {
+                "name": "file_name",
+                "value": "={{ $('Variables').item.json.source }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [
+        3200,
+        240
+      ],
+      "id": "d3333e57-daf9-4208-a634-f452d200df57",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Variables').item.json.type }}",
+                    "rightValue": "application/pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "ae55c6b6-a7ab-4f1b-9b5e-c81e4e097c2f"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PDF"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "eff2b2cd-e87c-485b-949c-e643a50e77b3",
+                    "leftValue": "={{ $('Variables').item.json.type }}",
+                    "rightValue": "application/vnd.google-apps.document",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "DOCS"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "none"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2220,
+        240
+      ],
+      "id": "9087c2bd-c442-4f00-887f-8f422643d5a7",
+      "name": "Switch - Tipo de archivo",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Variables').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "text/plain"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1740,
+        460
+      ],
+      "id": "c43a64cd-8e45-4ba2-91a7-1e3ad35832ac",
+      "name": "Descarga de archivo",
+      "retryOnFail": false,
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "hftZuigPhMVzzgUO",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Flujo general\n",
+        "height": 640,
+        "width": 2580,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        0
+      ],
+      "id": "3dde8515-f4e6-4077-8dd0-621564401ce7",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        640,
+        600
+      ],
+      "id": "91ae3234-3e2c-4cf8-8143-e5eb3b907eab",
+      "name": "Embeddings Ollama",
+      "credentials": {
+        "ollamaApi": {
+          "id": "mJdcpg3SlEXe3cS1",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Contiene toda la información que necesitas para responder las preguntas propuestas por el usuario.",
+        "topK": 5
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+      "typeVersion": 1.1,
+      "position": [
+        680,
+        260
+      ],
+      "id": "51119a77-64a3-452b-a516-86425271207d",
+      "name": "Responde preguntas con informacion de vectores",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        100,
+        80
+      ],
+      "id": "9e41f05a-d1a6-442f-9b3a-109b04f06e16",
+      "name": "Mensaje Recibido",
+      "webhookId": "1f6a4f6a-7ba1-4932-9835-509aae714dc9"
+    },
+    {
+      "parameters": {
+        "chunkOverlap": 200,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        3300,
+        380
+      ],
+      "id": "dc12ee9d-500c-45b4-983a-50a99736764f",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "model": "qwen-qwq-32b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        380,
+        260
+      ],
+      "id": "d49b4101-c788-427c-9890-89b8feb52afc",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "hxXqB2K0gGsBwceK",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "qwen-qwq-32b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        860,
+        460
+      ],
+      "id": "2c9fa264-d98d-4429-a522-2027e6587ded",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "hxXqB2K0gGsBwceK",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        2620,
+        40
+      ],
+      "id": "4122298b-3a22-46ac-a16e-60e37df9ee83",
+      "name": "Extraer texto de PDF",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        2620,
+        380
+      ],
+      "id": "c80deb8f-4c01-430b-9f79-4012392b585a",
+      "name": "Extraer texto de DOCS"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.2,
+      "position": [
+        3080,
+        40
+      ],
+      "id": "5e4781bd-e3b2-41a9-b790-19fa67746dd6",
+      "name": "Almacenar en Supabase",
+      "credentials": {
+        "supabaseApi": {
+          "id": "WdUovdP1s6w8EO89",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "documents",
+        "filterType": "string",
+        "filterString": "=metadata->>file_id=like.*{{$json.id}}*"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1740,
+        120
+      ],
+      "id": "dba2c468-7fd0-41ee-a9c0-c232babe8c52",
+      "name": "Eliminar coincidencias",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "WdUovdP1s6w8EO89",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a helpful and specialized AI agent. Your primary task is to retrieve relevant information from the vector store using semantic search tools before generating any response. \n\n✅ Always follow this strict workflow:\n1. Attempt to answer every query by searching the vector store first.\n2. Only if the vector store search returns no relevant results (or confidence is low), then fallback to the selected LLM model to generate a response.\n\n🚫 Do not guess or generate answers based solely on your knowledge without checking the vector store first.\n🎯 Your role is to be precise, context-aware, and retrieve the most accurate and relevant answers based on stored embeddings.\n\nIn case you couldnt get enough information just say so, dont use your LLM to make up answers. Be concise and focused when presenting results.\n\nAlways respond in spanish.\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        380,
+        80
+      ],
+      "id": "85901488-efa9-4b58-9faa-c5c88ae022ff",
+      "name": "RAG",
+      "retryOnFail": true,
+      "maxTries": 2
+    },
+    {
+      "parameters": {
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.1,
+      "position": [
+        560,
+        460
+      ],
+      "id": "ff184a6d-17b2-42d5-9fd3-ba11dca24dd2",
+      "name": "Almacenamiento de Vectores",
+      "credentials": {
+        "supabaseApi": {
+          "id": "WdUovdP1s6w8EO89",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 3,
+              "unit": "minutes"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1vuz1BXf70465nYUw4CBq3XTNpY805lQh",
+          "mode": "list",
+          "cachedResultName": "n8n_pdf_files",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1vuz1BXf70465nYUw4CBq3XTNpY805lQh"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        1260,
+        120
+      ],
+      "id": "ae37c7c9-fe63-43c1-ba39-4bd148e01191",
+      "name": "Archivo Creado",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "hftZuigPhMVzzgUO",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Variables').item.json.id }}",
+          "mode": "id"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1nPklASUqrTgNuqxx03pMZCUE5N79g07n",
+          "mode": "list",
+          "cachedResultName": "Procesados",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1nPklASUqrTgNuqxx03pMZCUE5N79g07n"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        3580,
+        40
+      ],
+      "id": "fdbca99d-509d-4590-9934-ea07c73f992d",
+      "name": "Mover archivo a procesados",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "hftZuigPhMVzzgUO",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 3,
+              "unit": "minutes"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1nPklASUqrTgNuqxx03pMZCUE5N79g07n",
+          "mode": "list",
+          "cachedResultName": "Procesados",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1nPklASUqrTgNuqxx03pMZCUE5N79g07n"
+        },
+        "event": "fileUpdated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        1260,
+        480
+      ],
+      "id": "6c8aac03-c6d6-47ac-8805-6e55c8c2763d",
+      "name": "Archivo actualizado",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "hftZuigPhMVzzgUO",
+          "name": "Google Drive account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "RAG",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Variables": {
+      "main": [
+        [
+          {
+            "node": "Descarga de archivo",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Eliminar coincidencias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Almacenar en Supabase",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Almacenar en Supabase",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Tipo de archivo": {
+      "main": [
+        [
+          {
+            "node": "Extraer texto de PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extraer texto de DOCS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descarga de archivo": {
+      "main": [
+        [
+          {
+            "node": "Switch - Tipo de archivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Almacenamiento de Vectores",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responde preguntas con informacion de vectores": {
+      "ai_tool": [
+        [
+          {
+            "node": "RAG",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje Recibido": {
+      "main": [
+        [
+          {
+            "node": "RAG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "RAG",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Responde preguntas con informacion de vectores",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer texto de PDF": {
+      "main": [
+        [
+          {
+            "node": "Almacenar en Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer texto de DOCS": {
+      "main": [
+        [
+          {
+            "node": "Almacenar en Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Eliminar coincidencias": {
+      "main": [
+        []
+      ]
+    },
+    "Almacenamiento de Vectores": {
+      "ai_vectorStore": [
+        [
+          {
+            "node": "Responde preguntas con informacion de vectores",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Archivo Creado": {
+      "main": [
+        [
+          {
+            "node": "Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Almacenar en Supabase": {
+      "main": [
+        [
+          {
+            "node": "Mover archivo a procesados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mover archivo a procesados": {
+      "main": [
+        []
+      ]
+    },
+    "Archivo actualizado": {
+      "main": [
+        [
+          {
+            "node": "Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d6c9b61c-4a00-4330-9106-188a61d9a1de",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "935cb7095e1cd311b180173e25e8010eb83fa92aa6db23b70987aa3248bddfb9"
+  },
+  "id": "51QkNsFDF8PYaxCK",
+  "tags": [
+    {
+      "createdAt": "2025-06-02T21:09:36.207Z",
+      "updatedAt": "2025-06-02T21:09:36.207Z",
+      "id": "SwaiqYnYPgqBklt1",
+      "name": "local"
+    }
+  ]
+}
